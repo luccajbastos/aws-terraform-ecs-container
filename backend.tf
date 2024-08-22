@@ -5,12 +5,12 @@ terraform {
     }
   }
 
-  backend "s3" {
-    profile        = "lucca-aws"
-    region         = "us-east-1"
-    key            = "wp-ha/terraform.state"
-    bucket         = "lucca-backend"
-    dynamodb_table = "lucca-lock-table"
-  }
+  # backend "s3" {
+  #   profile        = "lucca-aws"
+  #   region         = "us-east-1"
+  #   key            = "wp-ha/terraform.state"
+  #   bucket         = "lucca-backend"
+  #   dynamodb_table = "lucca-lock-table"
+  # }
 }
 
