@@ -1,6 +1,6 @@
 variable "project_name" {
   type    = string
-  default = "wordpress"
+  default = "ha-environment"
 }
 
 variable "project_config" {
@@ -23,7 +23,7 @@ variable "project_config" {
     }
 
     dev = {
-      aws_profile = "lucca-serverless"
+      aws_profile = "lucca-aws"
       aws_region  = "us-east-1"
     }
   }
@@ -131,20 +131,18 @@ variable "instance" {
       type     = string
       replicas = number
       min_replicas = number
+      max_capacity = number
       target_group_port = number
       target_group_protocol = string
       golden_ami_id = string
       instance_type = string
 
-      golden_ec2 = object({
-        create_golden_ec2 = bool
-        pem_key_name = string
-      })
     })
 
     dev = object({
       type     = string
       replicas = number
+      max_capacity = number
       min_replicas = number
       target_group_port = number
       target_group_protocol = string
@@ -152,10 +150,6 @@ variable "instance" {
       golden_ami_id = string
       instance_type = string
 
-      golden_ec2 = object({
-        create_golden_ec2 = bool
-        pem_key_name = string
-      })
     })
   })
 
@@ -164,31 +158,25 @@ variable "instance" {
     prod = {
       type     = "t4g.medium"
       replicas = 3
+      max_capacity = 5
       min_replicas = 1
       target_group_port = 80
       target_group_protocol = "HTTP"
       golden_ami_id = ""
-      instance_type = "t4g.medium"
+      instance_type = "t3.medium"
 
-      golden_ec2 = {
-        create_golden_ec2 = false
-        pem_key_name = "lucca-aws"
-      }
     }
 
     dev = {
       type     = "t4g.micro"
-      replicas = 2
+      replicas = 1
+      max_capacity = 2
       min_replicas = 1
       target_group_port = 80
       target_group_protocol = "HTTP"
-      golden_ami_id = "ami-0f922c7106281f54a"
-      instance_type = "t4g.small"
+      golden_ami_id = ""
+      instance_type = "t3.small"
 
-      golden_ec2 = {
-        create_golden_ec2 = false
-        pem_key_name = "lucca-aws"
-      }
     }
 
   }

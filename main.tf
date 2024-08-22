@@ -53,15 +53,16 @@ module "security-groups" {
     create_alb_security_group = true
     create_app_security_group = true
     create_db_security_group  = true
-    create_efs_security_group = true
+    create_efs_security_group = false
   }
 
-  admin_ips = {
-    entry = {
-      ip = "177.143.109.94/32"
-      description = "Lucca pessoal IP"
+  admin_ips = [
+    {
+      ip = "18.206.107.24/29"
+      description = "EC2 Instance Connect range (us-east-1)"
     }
-  }
+  ]
+
 
   tags = local.tags
 }
@@ -75,6 +76,7 @@ module "load-balancer" {
   alb_security_group_id      = module.security-groups.alb_security_group_id
   alb_subnet_ids             = module.vpc.public_subnets
   alb_custom_certificate_arn = lookup(var.alb_configuration, local.env)["alb_custom_certificate_arn"]
+  enable_deletion_protection = local.env == "prod" ? true : false
 
   environment     = local.env
   enable_alb_logs = lookup(var.alb_configuration, local.env)["enable_logs"]
@@ -102,49 +104,62 @@ module "rds-mysql" {
   events_sns_topic    = module.monitoring.db_topic_arn
   security_groups = module.security-groups.db_security_group_id
 
+  db_parameters = [
+    {
+      name = "character_set_client"
+      value = "utf8"
+    },
+    {
+      name = "character_set_connection"
+      value = "utf8"
+    },
+    {
+      name = "character_set_database"
+      value = "utf8"
+    },
+    {
+      name = "collation_server"
+      value = "utf8mb4_unicode_ci"
+    },
+    {
+      name = "character_set_server"
+      value = "utf8mb4"
+    }
+  ]
+
   tags = local.tags
 }
 
-module "elastic-file-system" {
-  depends_on = [module.vpc, module.security-groups]
-  source     = "./modules/elastic-file-system"
-
-  name    = local.name
-  subnets = module.vpc.private_subnets
-  security_groups_ids = module.security-groups.efs_security_group_id
-  tags    = local.tags
-}
-
 module "auto-scaling-group" {
-  depends_on = [ module.vpc, module.security-groups, module.load-balancer, module.rds-mysql, module.elastic-file-system] 
+  depends_on = [ module.vpc, module.security-groups, module.load-balancer, module.rds-mysql] 
   source = "./modules/ec2-instances"
 
   name = local.name
-  max_capacity = lookup(var.instance, local.env)["replicas"]
+  max_capacity = lookup(var.instance, local.env)["max_capacity"]
   min_capacity = lookup(var.instance, local.env)["min_replicas"]
+  desired_capacity = lookup(var.instance, local.env)["replicas"]
+  security_groups = module.security-groups.application_security_group_id
+  associate_public_ip = local.env == "prod" ? false : true
   app_port = lookup(var.instance, local.env)["target_group_port"]
   app_protocol = lookup(var.instance, local.env)["target_group_protocol"]
-  app_subnets_ids = module.vpc.private_subnets
-  golden_ami_id = lookup(var.instance, local.env)["golden_ami_id"]
+  app_subnets_ids = local.env == "prod" ? module.vpc.private_subnets : module.vpc.public_subnets
+  golden_ami_id = ""
   instance_type = lookup(var.instance, local.env)["instance_type"]
   vpc_id = module.vpc.vpc_id
-
-  golden_ec2_config = {
-    create = lookup(var.instance, local.env)["golden_ec2"]["create_golden_ec2"]
-    security_groups = module.security-groups.application_security_group_id
-    subnet_id = module.vpc.public_subnets[0]
-    key_name = lookup(var.instance, local.env)["golden_ec2"]["pem_key_name"]
-  }
 
   health_check_config = {
     enabled = true
     healthy_threshold = 2
-    path = "/health-check"
+    path = "/"
     port = lookup(var.instance, local.env)["target_group_port"]
     protocol = lookup(var.instance, local.env)["target_group_protocol"]
     unhealthy_threshold = 5
     interval = 30
   }
+
+  alb_listener_arn = local.env == "prod" ? module.load-balancer.alb_https_listener_arn[0] : module.load-balancer.alb_http_listener_arn[0]
+  alb_rule_priority = 10
+  path_patterns = ["/"]
 
   tags = local.tags
 

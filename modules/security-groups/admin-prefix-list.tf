@@ -6,6 +6,8 @@ resource "aws_ec2_managed_prefix_list" "admins" {
   name           = local.pl_name
   address_family = "IPv4"
   max_entries    = 5
+
+
     dynamic "entry" {
         for_each = var.admin_ips
         

@@ -48,3 +48,11 @@ resource "aws_db_parameter_group" "pg" {
     create_before_destroy = true
   }
 }
+
+data "aws_secretsmanager_secret" "rds-credentials" {
+  arn = aws_db_instance.rdsmysql.master_user_secret[0].secret_arn
+}
+
+data "aws_secretsmanager_secret_version" "current" {
+  secret_id = data.aws_secretsmanager_secret.rds-credentials.id
+}

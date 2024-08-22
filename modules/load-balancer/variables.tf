@@ -8,6 +8,10 @@ variable "alb_custom_certificate_arn" {
   default = ""
 }
 
+variable "enable_deletion_protection" {
+  type = bool
+}
+
 variable "alb_custom_ssl_policy" {
   type    = string
   default = "ELBSecurityPolicy-TLS-1-2-2017-01"

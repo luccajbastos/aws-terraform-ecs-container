@@ -11,19 +11,10 @@ variable "events_sns_topic" {
 }
 
 variable "db_parameters" {
-  type = object({
-    parameter = object({
-      name  = string
-      value = string
-    })
-  })
-
-  default = {
-    parameter = {
-      name  = "time_zone"
-      value = "Brazil/East"
-    }
-  }
+  type = list(object({
+    name = string
+    value = string
+  }))
 }
 
 variable "subnet_group_name" {

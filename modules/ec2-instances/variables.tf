@@ -2,6 +2,25 @@ variable "name" {
   type = string
 }
 
+variable "path_patterns" {
+  type = list(string)
+}
+
+variable "security_groups" {
+  type = list(string)
+}
+variable "alb_listener_arn" {
+  type = string
+}
+
+variable "desired_capacity" {
+  type = number
+}
+
+variable "alb_rule_priority" {
+  type = number
+}
+
 variable "max_capacity" {
   type = number
 }
@@ -20,15 +39,6 @@ variable "instance_type" {
 
 variable "app_subnets_ids" {
   type = list(string)
-}
-
-variable "golden_ec2_config" {
-  type = object({
-    create = bool
-    security_groups = list(string)
-    subnet_id = string
-    key_name = string
-  })
 }
 
 variable "app_port" {
@@ -57,4 +67,8 @@ variable "health_check_config" {
 
 variable "tags" {
   type = map(string)
+}
+
+variable "associate_public_ip" {
+  type = bool
 }

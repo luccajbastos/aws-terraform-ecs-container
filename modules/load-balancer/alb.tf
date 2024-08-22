@@ -9,7 +9,7 @@ resource "aws_lb" "alb" {
   security_groups    = var.alb_security_group_id
   subnets            = var.alb_subnet_ids
 
-  enable_deletion_protection = var.environment == "prod" ? "true" : "false"
+  enable_deletion_protection = var.enable_deletion_protection
 
   access_logs {
     bucket  = local.enable_alb_logs ? aws_s3_bucket.alb_logs_bucket[0].id : 0

@@ -9,12 +9,11 @@ variable "config" {
 }
 
 variable "admin_ips" {
-  type = object({
-    entry = object({
-      ip = string
-      description = string
-    })
-  })
+  type = list(object({
+    ip = string
+    description = string
+  }))
+
 }
 
 variable "name" {
