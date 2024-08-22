@@ -2,6 +2,8 @@
 
 This project is designed to showcase how Terraform can be used to provision AWS environments tailored to specific needs using Terraform workspaces. The configurations are managed centrally in the **variables.tf** file, allowing for streamlined management across different environments.
 
+![Production Environment Diagram](/assets/production-environment.jpg "Production Environment Diagram")
+
 # Overview
 
 The project demonstrates the creation of two distinct AWS environments using Terraform:
