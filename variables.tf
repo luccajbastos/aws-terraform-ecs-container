@@ -1,9 +1,10 @@
 variable "project_name" {
   type    = string
-  default = "ha-environment"
+  default = "ecs-environment"
 }
 
 variable "project_config" {
+
   type = object({
     prod = object({
       aws_profile = string
@@ -62,6 +63,7 @@ variable "vpc_configuration" {
     }
   }
 }
+
 variable "alb_configuration" {
   type = object({
     prod = object({
@@ -90,95 +92,28 @@ variable "alb_configuration" {
 
 }
 
-variable "db_instance" {
+
+variable "ecs_config" {
   type = object({
     prod = object({
-      ha                  = bool
-      instance_class      = string
-      deletion_protection = bool
-      allocated_storage   = number
+      containerInsights = bool
+      kms_arn           = string
     })
     dev = object({
-      ha                  = bool
-      instance_class      = string
-      deletion_protection = bool
-      allocated_storage   = number
+      containerInsights = bool
+      kms_arn           = string
     })
   })
 
   default = {
-
     prod = {
-      ha                  = true
-      instance_class      = "db.t4g.medium"
-      deletion_protection = true
-      allocated_storage   = 50
+      containerInsights = true
+      kms_arn           = null
     }
 
     dev = {
-      ha                  = false
-      instance_class      = "db.t4g.small"
-      deletion_protection = false
-      allocated_storage   = 20
+      containerInsights = false
+      kms_arn           = null
     }
   }
-}
-
-variable "instance" {
-
-  type = object({
-    prod = object({
-      type     = string
-      replicas = number
-      min_replicas = number
-      max_capacity = number
-      target_group_port = number
-      target_group_protocol = string
-      golden_ami_id = string
-      instance_type = string
-
-    })
-
-    dev = object({
-      type     = string
-      replicas = number
-      max_capacity = number
-      min_replicas = number
-      target_group_port = number
-      target_group_protocol = string
-      
-      golden_ami_id = string
-      instance_type = string
-
-    })
-  })
-
-  default = {
-
-    prod = {
-      type     = "t4g.medium"
-      replicas = 3
-      max_capacity = 5
-      min_replicas = 1
-      target_group_port = 80
-      target_group_protocol = "HTTP"
-      golden_ami_id = ""
-      instance_type = "t3.medium"
-
-    }
-
-    dev = {
-      type     = "t4g.micro"
-      replicas = 1
-      max_capacity = 2
-      min_replicas = 1
-      target_group_port = 80
-      target_group_protocol = "HTTP"
-      golden_ami_id = ""
-      instance_type = "t3.small"
-
-    }
-
-  }
-
 }

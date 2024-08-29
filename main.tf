@@ -3,6 +3,7 @@ data "aws_availability_zones" "azs" {}
 locals {
 
   env  = terraform.workspace == "default" ? "dev" : terraform.workspace
+  aws_region = lookup(var.project_config, local.env)["aws_region"]
   name = "${var.project_name}-${local.env}"
 
   tags = {
@@ -89,78 +90,58 @@ module "monitoring" {
   source = "./modules/monitoring"
 }
 
-module "rds-mysql" {
-  source     = "./modules/rds-mysql"
-  depends_on = [module.vpc, module.security-groups]
+module "ecs-cluster" {
+  source = "./modules/ecs"
 
-  name        = var.project_name
-  environment = local.env
-
-  instance_class      = lookup(var.db_instance, local.env)["instance_class"]
-  deletion_protection = lookup(var.db_instance, local.env)["deletion_protection"]
-  ha                  = lookup(var.db_instance, local.env)["ha"]
-  allocated_storage   = lookup(var.db_instance, local.env)["allocated_storage"]
-  subnet_group_name   = module.vpc.database_subnet_group_name
-  events_sns_topic    = module.monitoring.db_topic_arn
-  security_groups = module.security-groups.db_security_group_id
-
-  db_parameters = [
-    {
-      name = "character_set_client"
-      value = "utf8"
-    },
-    {
-      name = "character_set_connection"
-      value = "utf8"
-    },
-    {
-      name = "character_set_database"
-      value = "utf8"
-    },
-    {
-      name = "collation_server"
-      value = "utf8mb4_unicode_ci"
-    },
-    {
-      name = "character_set_server"
-      value = "utf8mb4"
-    }
-  ]
+  ecs_cluster_settings = {
+    name = local.name
+    containerInsights = lookup(var.ecs_config, local.env)["containerInsights"]
+    kms_key_arn = lookup(var.ecs_config, local.env)["kms_arn"]
+  }
 
   tags = local.tags
 }
 
-module "auto-scaling-group" {
-  depends_on = [ module.vpc, module.security-groups, module.load-balancer, module.rds-mysql] 
-  source = "./modules/ec2-instances"
+module "app-1" {
+  source = "./modules/example-app"
 
-  name = local.name
-  max_capacity = lookup(var.instance, local.env)["max_capacity"]
-  min_capacity = lookup(var.instance, local.env)["min_replicas"]
-  desired_capacity = lookup(var.instance, local.env)["replicas"]
-  security_groups = module.security-groups.application_security_group_id
-  associate_public_ip = local.env == "prod" ? false : true
-  app_port = lookup(var.instance, local.env)["target_group_port"]
-  app_protocol = lookup(var.instance, local.env)["target_group_protocol"]
-  app_subnets_ids = local.env == "prod" ? module.vpc.private_subnets : module.vpc.public_subnets
-  golden_ami_id = ""
-  instance_type = lookup(var.instance, local.env)["instance_type"]
-  vpc_id = module.vpc.vpc_id
+  cluster_name = module.ecs-cluster.cluster_name
 
-  health_check_config = {
-    enabled = true
-    healthy_threshold = 2
-    path = "/"
-    port = lookup(var.instance, local.env)["target_group_port"]
-    protocol = lookup(var.instance, local.env)["target_group_protocol"]
-    unhealthy_threshold = 5
-    interval = 30
+  app_config = {
+    app_name = "example-app"
+    region = local.aws_region
+    desired_count = 1
+    app_port = 80
+    launch_type = "FARGATE"
+    enable_execute_command = true
+    alb_config = {
+      hosts = ["app.com.br"]
+      priority = 100
+      listener_arn = local.env == "prod" ? module.load-balancer.alb_https_listener_arn[0] : module.load-balancer.alb_http_listener_arn[0]
+    }
+    network_configuration = {
+        vpc_id = module.vpc.vpc_id
+        subnets = local.env == "prod" ? module.vpc.private_subnets : module.vpc.public_subnets
+        security_groups = module.security-groups.application_security_group_id
+        assign_public_ip = local.env == "prod" ? false : true
+      }
+    container_definitions = {
+      image = "public.ecr.aws/ecs-sample-image/amazon-ecs-sample:latest"
+      cpu = 1024
+      memory = 2048
+      essential = true
+      command = []
+      entryPoint = []
+      readonlyRootFilesystem = false
+      secretsManagerArn = "arn:aws:secretsmanager:us-east-1:988530097210:secret:test/secret-HGQHpl"
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort = 80
+          protocol = "tcp"
+        }
+      ]
+    }
+
   }
-
-  alb_listener_arn = local.env == "prod" ? module.load-balancer.alb_https_listener_arn[0] : module.load-balancer.alb_http_listener_arn[0]
-  alb_rule_priority = 10
-  path_patterns = ["/"]
-
-  tags = local.tags
-
 }

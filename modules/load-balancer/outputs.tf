@@ -3,7 +3,7 @@ output "alb_https_listener_arn" {
 }
 
 output "alb_http_listener_arn" {
-  value = aws_lb_listener.http_listener.*.arn 
+  value = aws_lb_listener.http_listener.*.arn
 }
 
 output "alb_endpoint" {

@@ -5,15 +5,15 @@ variable "config" {
     create_db_security_group  = bool
     create_alb_security_group = bool
   })
-
+  description = "A map of configuration options for the environment"
 }
 
 variable "admin_ips" {
   type = list(object({
-    ip = string
+    ip          = string
     description = string
   }))
-
+  description = "A list of IP addresses and descriptions for administrators"
 }
 
 variable "name" {
@@ -37,5 +37,6 @@ variable "vpc_cidr" {
 }
 
 variable "database_port" {
-  type = number
+  type        = number
+  description = "The port on which the database accepts connections"
 }
